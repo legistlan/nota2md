@@ -1,0 +1,67 @@
+---
+title: "Scripts"
+---
+
+Three scripts live in `scripts/` because what they produce or read is this
+package's own. They import `nota2md` from the repository root, so a clone runs
+them without `pip install -e .`, and `scjn` and `dofjson` from PyPI, as the
+package itself does. Everything they write goes under the gitignored
+`scripts/scjn/` or a directory named with `--outdir`: data is never committed.
+
+## `enlaza_scjn_legislacion.py`: the DOF side of a crawl
+
+Matches every SCJN snapshot a crawl already downloaded to the `codNota` of the
+DOF note that published it ([Linking](linking.qmd)), and writes one
+`indice.json` per law under `<outdir>/leyes/<law>/`, with the DOF notes it
+considered saved beside it. It is step 4 of `scjn`'s crawl process: that
+repository's `fetch_scjn_legislacion.py` crawls the snapshots into a workspace,
+and this script links them before `scjn`'s packaging scripts build the release.
+
+```bash
+nota2md download gazette-metadata                          # the DOF titles it matches against
+./scripts/enlaza_scjn_legislacion.py --outdir scjn-legislacion
+./scripts/enlaza_scjn_legislacion.py --outdir scjn-legislacion --instrumento lft
+```
+
+Only laws already crawled under `<outdir>/leyes/` are touched; `--instrumento`
+(repeatable) narrows the run to the named laws, so one refreshed law can have
+its own `indice.json` regenerated without re-walking the collection. A date
+left ambiguous is printed as a warning for a human to review.
+
+## `fetch_federal_law_metadata.py`: `materia`, `vigencia`, `resumen`
+
+Records each federal law's subject classification, in-force status and
+one-paragraph abstract, the SCJN's own, into that law's `estado.json` and into
+the published `indice-global.json.gz`, where a reader gets them for a few
+hundred KB instead of the corpus' 380 MB. The three fields are per law, not
+per reform, so no snapshot changes.
+
+```bash
+scjn download                                   # once, if the cache is cold
+./scripts/fetch_federal_law_metadata.py --dry-run
+./scripts/fetch_federal_law_metadata.py
+```
+
+Identity comes from the cache, never from a ranking: every law is addressed by
+the `id_ordenamiento` its own newest snapshot header records, the SCJN is
+searched with the law's own title, and only the hit carrying that same id is
+kept. A law whose id is not among the results is reported and left alone. The
+`gh release upload` line the script prints at the end names the releases'
+owner (`scjn.release.release_repository`); publishing stays a human's step.
+
+## `regenera_fixtures_leyes.py`: the reconstruction's ground truth
+
+Rewrites `tests/fixtures/leyes/` from the `scjn-leyes` release: for each law,
+the newest snapshot with the provenance header stripped and the SCJN's own
+editorial insertions removed, plus `historial_44.json`, the `codNota` of every
+reform up to that snapshot. A law whose history the corpus cannot fully resolve
+is excluded and reported: replaying a history with a hole in it would measure
+the hole, not the algorithm.
+
+```bash
+./scripts/regenera_fixtures_leyes.py             # report only
+./scripts/regenera_fixtures_leyes.py --escribe   # write the fixtures
+```
+
+See [Reconstruction](reconstruction.qmd) for what `tests/test_leyes_44.py`
+then establishes.

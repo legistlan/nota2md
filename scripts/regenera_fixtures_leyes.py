@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Rebuild `reconstruct_legal_provisions()`'s ground-truth fixtures from the
-`scjn-leyes` release — `packages/nota2md/tests/fixtures/leyes/<abrev>.md` plus
+`scjn-leyes` release — `tests/fixtures/leyes/<abrev>.md` plus
 `historial_44.json`, what `tests/test_leyes_44.py` reads.
 
     ./scripts/regenera_fixtures_leyes.py                     # report only
@@ -48,15 +48,15 @@ import json
 import sys
 from pathlib import Path
 
+# `scjn` is nota2md's own dependency and comes from PyPI; RAIZ is the
+# repository root, where the fixtures live.
 RAIZ = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(RAIZ / "packages" / "nota2md"))
-sys.path.insert(0, str(RAIZ / "packages" / "scjn"))
 
 from scjn.release import download_scjn_leyes_corpus  # noqa: E402
 from scjn.catalog import slug_instrumento  # noqa: E402
 from scjn.text import quita_notas_editoriales  # noqa: E402
 
-FIXTURES = RAIZ / "packages" / "nota2md" / "tests" / "fixtures" / "leyes"
+FIXTURES = RAIZ / "tests" / "fixtures" / "leyes"
 ARCHIVO_HISTORIAL = "historial_44.json"
 
 

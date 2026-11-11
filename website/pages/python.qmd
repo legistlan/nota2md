@@ -1,0 +1,118 @@
+---
+title: "Python"
+---
+
+The code blocks on this page are illustrative and are not executed when the
+site is built: every example needs the cache or the network. The verified
+examples, run as doctests, are on the
+[developer docs](https://legistlan.github.io/nota2md/dev/).
+
+Nine entry points, all re-exported off the package itself
+(`from nota2md import ...`), for the gazette and the federal laws it publishes:
+
+| Entry point | Given | Returns or writes |
+|---|---|---|
+| `legal_provisions` | a `codNota`; an `outdir` is optional | the law's consolidated text at that reform from the SCJN corpus (`outdir/{slug}-{fecha}.md`), or, when the corpus does not cover it, the DOF's own Markdown (`outdir/nota-{codNota}.md`); with no `outdir`, written into the cache and returned as a `Path` |
+| `reconstruct_legal_provisions` | a law's reform history, as a `codNota` list | its current text, written to `outdir/ley-{codNota}.md` |
+| `fetch_daily_legal_provisions` | a date, or a day already in hand | that whole day's legal provisions as one flat list, each naming its `edicion` |
+| `get_document` | a `codNota`, or a `get_nota` record already in hand | that same record with `cadenaContenido` holding Markdown instead of DOF HTML |
+| `legal_provisions_titles` | nothing; reads the whole `notas-archivo` cache | every legal provision ever published, as a stream of `codNota`, `titulo`, `fecha` and `codOrgaUno` records |
+| `download_scjn_leyes_corpus` | a law's slug | every snapshot of that law in the `scjn-leyes` release, with its `codNota` links |
+| `download_scjn_leyes_index` | nothing; one small release asset | the reverse index, `codNota` to law and snapshot |
+| `download_scjn_leyes_catalog` | nothing | every federal law the release publishes: `abrev`, `nombre`, `actualizado`, `materia`, `vigencia`, `resumen` |
+| `iter_current_federal_laws` | nothing; the release, read lazily | the current text of every federal law, one snapshot per law, as a generator |
+
+## `legal_provisions`
+
+```python
+from nota2md import legal_provisions
+
+legal_provisions(4967917)                            # -> <CACHE_DIR>/scjn-leyes/md/lfca-05-01-1999.md
+legal_provisions(4967917, "output")                  # -> output/lfca-05-01-1999.md
+legal_provisions(4967917, "output", source="dof")    # -> output/nota-4967917.md
+legal_provisions(5793655, "output", instrumento="lft")   # one decree, several laws: say which
+```
+
+A `codNota` whose decree reformed several laws at once raises `ValueError`
+listing the candidates rather than picking one. A `codNota` the corpus does not
+cover, an asset not on disk, or a network failure reading the release all fall
+back to the DOF path, the last two with a `warnings.warn`, so the fallback is
+never silent. How the text is chosen and cut is on [Sources](sources.qmd).
+
+## `get_document` and `fetch_daily_legal_provisions`
+
+```python
+from nota2md import get_document, fetch_daily_legal_provisions
+import datetime as dt
+
+documento = get_document(5793655)
+documento["titulo"]            # unchanged
+documento["cadenaContenido"]   # Markdown, not HTML
+
+for nota in fetch_daily_legal_provisions(dt.date(2026, 7, 15)):
+    print(nota["edicion"], nota["codNota"], nota["titulo"])
+```
+
+`get_document` is the package's single note-to-Markdown step: `dofjson`'s
+`get_nota` record with `cadenaContenido` converted by `html_to_markdown` and
+every other key passed through untouched, so it can go anywhere a `get_nota`
+record can, including as `legal_provisions`' own `nota` argument. Given a
+record already in hand (`get_document(nota=...)`) the call is pure and offline.
+A note with no digital text comes back with `cadenaContenido` as it was, `None`
+or empty; it is not silently OCR'd.
+
+`fetch_daily_legal_provisions` is `dofjson`'s, re-exported: the whole day as
+one flat list in publication order, from SIDOF and, when SIDOF has nothing for
+that day, from the DOF's own website.
+
+## `legal_provisions_titles`
+
+```python
+from nota2md import legal_provisions_titles
+
+for titulo in legal_provisions_titles():
+    ...   # {"codNota", "titulo", "fecha", "codOrgaUno"}, about 1.2 million of them
+```
+
+Implemented in `dofjson.titulos` and re-exported here. It streams off the
+`notas-archivo` cache; `nota2md download gazette-metadata` populates it once,
+and every pass afterwards is local.
+
+## The `scjn` readers
+
+```python
+from nota2md import (
+    download_scjn_leyes_catalog, download_scjn_leyes_corpus,
+    download_scjn_leyes_index, iter_current_federal_laws,
+)
+
+indice = download_scjn_leyes_index()          # codNota -> [{slug, archivo, ...}]
+lfca = download_scjn_leyes_corpus("lfca")     # every snapshot of one law, oldest first
+catalogo = download_scjn_leyes_catalog(freshness=False)   # off the index alone
+
+for ley in iter_current_federal_laws(slugs=["lfca"]):
+    print(ley["slug"], ley["fecha_publicacion"], ley["materia"], ley["vigencia"])
+```
+
+These four are `scjn.release`'s and are re-exported unchanged, so a caller
+reaching for the package's entry points does not have to know which package
+defines them. Every one is disk-first: `nota2md download federal-laws` puts the
+release on disk, and a law not there raises `AssetNotCached`. The release slug
+is the normalised `abrev`, so the fourteen laws whose abbreviation carries an
+underscore (`lif_2026`, `ligie_2022`, `reg_senado`, ...) come back hyphenated;
+match on `scjn.catalog.slug_instrumento` and keep your own `abrev`.
+
+## Reusing one OCR server
+
+Every `legal_provisions(..., source="image"|"pdf")` call manages its own OCR
+server as needed. Building many notes in one run can share one already-warm
+`mineru-api` server by passing an entered `document2md.BatchConverter`:
+
+```python
+from document2md import BatchConverter
+from nota2md import legal_provisions
+
+with BatchConverter() as ins:
+    for cod_nota in codigos_sin_html:
+        legal_provisions(cod_nota, "output", source="image", converter=ins)
+```

@@ -45,22 +45,21 @@ ocr = ["document2md>=0.3.0"]
 test = ["pytest>=7.0"]
 
 [project.urls]
-Homepage = "https://github.com/INGEOTEC/LegalIA/tree/main/packages/nota2md"
+Homepage = "https://github.com/legistlan/nota2md"
+Documentation = "https://legistlan.github.io/nota2md/"
+Source = "https://github.com/legistlan/nota2md"
+Issues = "https://github.com/legistlan/nota2md/issues"
 
 [project.scripts]
 nota2md = "nota2md.cli:main"
-
-[tool.uv.sources]
-# In the uv workspace (root pyproject.toml), resolve these sibling
-# monorepo packages to their local editable copies instead of PyPI.
-# document2md is not among them any more: it has its own repository since
-# issue #234, and the root pyproject.toml's own source (which applies to
-# every workspace member) is what resolves it.
-dofjson = { workspace = true }
-scjn = { workspace = true }
 
 [tool.setuptools.packages.find]
 include = ["nota2md", "nota2md.*"]
 
 [tool.setuptools.dynamic]
 version = {attr = 'nota2md.__version__'}
+
+[tool.uv]
+# The version is dynamic (read from nota2md/__init__.py); without it in the
+# cache keys uv would not rebuild the editable install when __version__ bumps.
+cache-keys = [{ file = "pyproject.toml" }, { file = "setup.py" }, { file = "nota2md/__init__.py" }]

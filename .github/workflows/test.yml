@@ -1,0 +1,104 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  # The routine suite: SIDOF, the DOF's website, the SCJN releases and the OCR
+  # server are all mocked. document2md comes along (the `ocr` extra) because
+  # tests/test_builder.py patches document2md.converter.*, and mineru's opencv
+  # needs libGL on a bare runner.
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install system dependencies (mineru's opencv needs libGL)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libgl1 libglib2.0-0
+      - name: Install package, test dependencies and the ocr extra
+        run: pip install -e ".[test,ocr]"
+      - name: Run tests
+        run: pytest tests --ignore=tests/test_leyes_44.py
+
+  # tests/test_leyes_44.py reconstructs 42 federal laws from their reform
+  # decrees, fetched for real from SIDOF (with the dofweb fallback), and
+  # compares each against the SCJN's consolidated text frozen in
+  # tests/fixtures/leyes/. Its own job, so a SIDOF outage fails one cell and
+  # not the matrix.
+  network:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test dependencies
+        run: pip install -e ".[test]"
+      - name: Run the network tests
+        run: pytest tests/test_leyes_44.py
+
+  # Sphinx gate: a strict HTML build (any broken cross-reference or other
+  # warning fails it) plus the documentation's worked examples run for real:
+  # SIDOF and the DOF's website for the notes, the cached `lfca` law for the
+  # SCJN path, and the notas-archivo release, which the titles example
+  # downloads into dofjson's cache on a cold runner. This is the only place
+  # the examples run: website.yml builds the same page HTML-only and never
+  # touches the network (issue #195 of the monorepo this package was
+  # extracted from, inherited with the page). The release listings are
+  # requests to api.github.com, where an unauthenticated runner IP gets 60
+  # requests an hour (pull request #298 of that monorepo); the packages send
+  # the token only when it is set.
+  docs:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Cache the three on-disk release caches the examples read
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/scjn
+            ~/.cache/nota2md
+            ~/.cache/dofjson
+          # actions/cache never saves over an existing key: bump it when the
+          # examples need an asset a cached release no longer matches.
+          key: docs-cache-v1
+      - name: Install docs and package dependencies
+        run: |
+          pip install -r docs/requirements.txt
+          pip install -e .
+      - name: Download the scjn-leyes assets the docs exercise
+        run: scjn download --slug lfca
+      - name: Build the docs strictly
+        run: python -m sphinx -n -W --keep-going -b html docs/source docs/build/html
+      - name: Run the documentation's doctest examples
+        run: python -m sphinx -b doctest docs/source docs/build/doctest
+
+  # Hard gate on the single-step-ahead rule (issue #194 of the monorepo this
+  # package was extracted from): __version__ may not jump more than one
+  # release past what is published on PyPI.
+  check-package-versions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install checker dependencies
+        run: pip install packaging
+      - name: Check package versions against PyPI
+        run: python scripts/check_package_versions.py

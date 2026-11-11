@@ -1,0 +1,73 @@
+---
+title: "Reconstruction"
+---
+
+`reconstruct_legal_provisions` builds a law's current text from nothing but its
+DOF notes: it starts from the original publication and replays each reform
+decree's own "se reforma, adiciona, deroga el artículo N ... para quedar como
+sigue" instruction on top of it, article by article, filling back in, from the
+article's own previous text, every fracción or inciso a reform elides with
+"..." instead of repeating. It never reads anyone else's consolidated text of
+the law.
+
+```python
+from nota2md import download_scjn_leyes_corpus, reconstruct_legal_provisions
+
+ley = download_scjn_leyes_corpus("lamn")
+historial = [s["codNota"] for s in ley["snapshots"] if s["codNota"]]   # oldest first
+
+dest = reconstruct_legal_provisions(historial, "output", nombre_ley="LEY de Amnistía")
+print(dest)   # output/ley-<first codNota>.md
+```
+
+Each note it needs is fetched through `legal_provisions` into the same
+`outdir`, as `nota-{codNota}.md`; a note already there, from this law's own
+previous run or another law's sharing the directory, is read back from disk
+instead of fetched again.
+
+## Why it is still here
+
+The SCJN corpus became `legal_provisions`' default source, and that does not
+retire this function. The corpus links 3,291 of its 3,724 `leyes` snapshots to
+a `codNota`, only 526 of them pre-1999, and covers nothing outside federal
+laws: replaying a law's own reform decrees remains the only route for
+everything the corpus does not reach, and the independent cross-check on what
+it does.
+
+## `nombre_ley`
+
+The catalogue's own `nombre` (`"LEY de Amnistía"`) scopes every note to the one
+instrument among the several a single decree may touch. Pass it whenever a note
+is shared with another law's history, which the release's per-law index does
+not mark on its own (the reverse index does: `download_scjn_leyes_index` maps
+one `codNota` to every law it reformed). Left out, a note is assumed to concern
+only this law, which holds for most of them but silently mixes in another law's
+articles for the rest.
+
+## `source`
+
+`source`, `min_confidence` and `keep_pages` are the same parameters
+`legal_provisions` takes, forwarded to the call made for every note in the
+history. The default here is `source="html"`, not `legal_provisions`' own
+`"auto"`: the article merge was designed and checked against HTML-derived
+Markdown, so a note missing `cadenaContenido` still fails by default. Passing
+`source="image"` or `"pdf"` OCRs it instead of failing, but the merge's
+behaviour on OCR output has not been validated; review the result before
+trusting it.
+
+## What the test establishes, and what it does not
+
+`tests/test_leyes_44.py` checks the reconstruction against the SCJN's own
+consolidated text at each law's most recent reform, over 42 real federal laws:
+every federal law with two or three reforms, all published after 1999.
+`scripts/regenera_fixtures_leyes.py` rewrites that ground truth from the
+`scjn-leyes` release (see [Scripts](scripts.qmd)); the fixtures are the one
+exception to "data is never committed", about 3 MB frozen so a regression test
+of a replay algorithm does not change its answer because a law was reformed.
+
+What is still checked, and is the point: the reconstruction replays the DOF's
+own decrees, note by note, and nothing in that path reads the SCJN, so the
+reconstruction and the fixture come from two different publishers of the same
+law. What is not checked, anywhere: `legal_provisions` answers from the SCJN
+corpus by default, and nothing compares that corpus against a source outside
+itself. If the SCJN's text of a law is wrong, this suite passes.

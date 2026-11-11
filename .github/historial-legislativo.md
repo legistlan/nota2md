@@ -1,5 +1,5 @@
 **Registro congelado.** Este release ya no se mantiene: nada en el
-repositorio LegalIA puede regenerar sus assets, y ningún workflow los vuelve a
+repositorio `nota2md` puede regenerar sus assets, y ningún workflow los vuelve a
 publicar. Se conserva descargable porque los datos siguen siendo ciertos del
 día en que se construyeron; lo que dejó de ser cierto es que alguien los
 actualice.
@@ -8,7 +8,7 @@ Contiene el historial de cambios de tres colecciones de la normatividad
 federal mexicana, ligado a las legal provisions del Diario Oficial de la
 Federación que las publicaron. Cada entrada es un `codNota`: el título, la
 fecha y el organismo emisor se recuperan uniéndolo contra el
-[archivo de legal provisions del DOF](https://github.com/INGEOTEC/LegalIA/releases/tag/notas-archivo),
+[archivo de legal provisions del DOF](https://github.com/legistlan/dofjson/releases/tag/notas-archivo),
 que sí se mantiene.
 
 | Asset | Contenido | Último build |
@@ -28,7 +28,7 @@ leyesmx`, ni un `empaqueta_historial.py`, ni el workflow mensual
 
 `leyes.tgz` **se retiró de este release** (issue #190). No fue reemplazado por
 otro asset: el historial de reformas de una ley federal *es* el release
-[`scjn-leyes`](https://github.com/INGEOTEC/LegalIA/releases/tag/scjn-leyes) —
+[`scjn-leyes`](https://github.com/legistlan/scjn/releases/tag/scjn-leyes) —
 el `indice.json` de cada ley, una entrada por reforma de la más antigua a la
 más reciente con el `codNota` que la publicó, más `indice-global.json.gz`, que
 invierte todo eso por `codNota`. Se lee desde Python con
@@ -59,6 +59,6 @@ cubre exactamente los tres assets que quedan (se regeneró al retirar
 `leyes.tgz`, para que la comprobación siga pasando tal cual):
 
 ```bash
-gh release download historial-legislativo --repo INGEOTEC/LegalIA
+gh release download historial-legislativo --repo legistlan/nota2md
 sha256sum -c SHA256SUMS.txt
 ```

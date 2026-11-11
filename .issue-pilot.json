@@ -1,0 +1,4 @@
+{
+  "base_branch": "main",
+  "test_command": ".venv/bin/python -m pytest -q tests --ignore=tests/test_leyes_44.py"
+}

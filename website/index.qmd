@@ -1,0 +1,88 @@
+---
+title: "nota2md"
+subtitle: "One legal provision of Mexico's official gazette, or one federal law, as Markdown"
+toc: false
+number-sections: false
+---
+
+::: {.home-lead}
+**nota2md** builds the Markdown of a single legal provision of the *Diario
+Oficial de la Federación* (DOF), identified by its `codNota`. When the
+`scjn-leyes` release covers that `codNota`, the answer is the Supreme Court's
+consolidated text of the whole law as it read right after that reform; when it
+does not, the answer is the DOF's own text, converted from its HTML or, for the
+scanned decades, OCR'd from its page images or PDF. The same package replays a
+law's current text from nothing but its reform decrees, and matches each of the
+Court's snapshots to the DOF note that produced it.
+:::
+
+::: {.callout-warning}
+## The DOF is the official source; the SCJN is not
+
+The gazette, read through [dofjson](https://legistlan.github.io/dofjson/), is
+the official source of legal text. The Court's consolidated texts, read through
+[scjn](https://legistlan.github.io/scjn/), are an editorial product over it: a
+convenience corpus. Every file the SCJN path writes keeps its `fuente: scjn`
+provenance header and lands under a different file name, so the file alone says
+where it came from.
+:::
+
+::: {.fronts}
+::: {.front}
+### Three sources, one call
+
+`legal_provisions(codNota)` answers from the SCJN corpus by default and falls
+back to the DOF's HTML, images or PDF; `source="dof"` forces the original.
+:::
+::: {.front}
+### The gazette side of the project
+
+`nota2md.linking` is the one place that knows how an SCJN snapshot becomes a
+`codNota`, and `reconstruct_legal_provisions` rebuilds a law from the DOF
+alone.
+:::
+::: {.front}
+### Five releases, two caches
+
+`nota2md download all` puts the four SCJN releases and the gazette's archive
+on disk, each in the cache of the package that owns it.
+:::
+:::
+
+## Quickstart
+
+```bash
+pip install nota2md
+nota2md download federal-laws --slug lfca    # the one law the examples use
+nota2md 5788357                              # the law at that reform, from the SCJN
+nota2md 4648702 --outdir output              # an ordinary decree, from the DOF's HTML
+```
+
+```python
+from nota2md import legal_provisions, get_document, reconstruct_legal_provisions
+
+legal_provisions(5788357)                     # -> <cache>/scjn-leyes/md/lfca-22-05-2026.md
+legal_provisions(4648702, "output", source="dof")   # -> output/nota-4648702.md
+
+documento = get_document(4648702)             # dofjson's record, cadenaContenido as Markdown
+reconstruct_legal_provisions([5592105, 5730586], "output", nombre_ley="LEY de Amnistía")
+```
+
+See [Install](pages/install.qmd) for what the package needs and where it
+writes, [Command line](pages/cli.qmd) and [Python](pages/python.qmd) for the
+two ways to call it, [Sources](pages/sources.qmd) for how a note's text is
+chosen and cut, [Linking](pages/linking.qmd) for how a snapshot gets its
+`codNota`, [Reconstruction](pages/reconstruction.qmd) for the replay of a law's
+decrees, [Releases](pages/releases.qmd) for the data it reads, and
+[Scripts](pages/scripts.qmd) for the three scripts that maintain the corpus'
+DOF side. Extending the package itself is documented separately, on the
+[developer docs](https://legistlan.github.io/nota2md/dev/).
+
+## Colophon {.unnumbered}
+
+This site was built by the nota2md maintainers together with Claude,
+Anthropic's coding assistant, through
+[Claude Code](https://claude.com/claude-code): the assistant helped set up
+the Quarto site and draft these pages from the README and the project notes,
+with the authors reviewing and validating every change before it was
+committed.

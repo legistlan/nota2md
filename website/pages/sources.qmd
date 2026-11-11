@@ -1,0 +1,79 @@
+---
+title: "Sources"
+---
+
+`legal_provisions` builds the Markdown of one legal provision from any of four
+sources. Which one answers is the package's one real decision.
+
+| Source | How | When |
+|---|---|---|
+| **SCJN** | reads the law's consolidated text as it read right after this reform out of the `scjn-leyes` release, with no DOF request at all | the default, whenever the corpus covers this `codNota` with a link the project is certain of; `source="dof"` turns it off |
+| **HTML** | converts the note's `cadenaContenido` HTML directly, with a DOF-tailored BeautifulSoup converter | the note has digital text; preferred, since it is clean, already scoped to the one note, and needs no OCR |
+| **Image** | downloads the note's scanned page images through `dofjson`, OCRs them with `document2md` and mineru, then slices out the one note | image-only notes, or any note when the certified scanned original is wanted |
+| **PDF** | downloads the note's own PDF (the edition PDF sliced to its pages, through `dofjson.download_nota_pdf`), OCRs it, then slices out the one note | when a PDF is preferable to page images |
+
+Both OCR paths mirror the HTML path's output style (`#` and `##` headings,
+`**bold**`, `*italic*`, GitHub tables), so a note's Markdown looks much the
+same whichever source it came from.
+
+## The SCJN path
+
+The Court's legislative database keeps, for every reform of every federal law,
+a snapshot of the law's consolidated text exactly as it read right after that
+reform. Those snapshots are crawled through the SCJN's own SCOW JSON API,
+matched to the DOF `codNota` that enacted them (see [Linking](linking.qmd)) and
+published as the `scjn-leyes` release: 315 laws, 3,724 snapshots. A `codNota`
+the release covers is answered straight out of it, which is what
+[reconstruction](reconstruction.qmd) otherwise has to infer by replaying every
+reform decree in order.
+
+The SCJN is not an official source of legal text; the DOF is. Every file this
+path writes therefore keeps the corpus' own provenance header (`fuente: scjn`,
+`ordenamiento`, `fecha_publicacion`, ...) intact, and lands under a different
+name, so the file alone says where it came from:
+
+| | file written | with no `outdir` |
+|---|---|---|
+| SCJN path | `outdir/{slug}-{fecha}.md` (`lfca-05-01-1999.md`) | `<CACHE_DIR>/scjn-leyes/md/{slug}-{fecha}.md` |
+| every DOF path | `outdir/nota-{codNota}.md` | `<CACHE_DIR>/dof/nota-{codNota}.md` |
+
+The snapshot `scjn` writes carries the outline the SCJN's API states, one
+`<!-- scjn:block ... -->` marker line before each block. nota2md reads the text,
+not the outline: it takes the snapshot with the markers out
+(`markdown_de_snapshot(..., outline=False)`), so what it returns is exactly the
+text.
+
+A `codNota` whose decree reformed several laws at once resolves to more than
+one law and raises `ValueError` listing the candidates; `instrumento="<slug>"`
+says which. A `codNota` the corpus does not cover, a law not on disk, or a
+network failure reading the release all fall back to the DOF path, the last two
+with a warning.
+
+## Notes SIDOF does not have
+
+SIDOF, the gazette's JSON service, is missing whole days of the gazette, and the
+notes published on them have no SIDOF record at all: no `cadenaContenido`, and
+no `codDiario` or page numbers for the OCR paths to start from. When SIDOF
+answers an empty record for a `codNota`, `legal_provisions` looks the note up on
+the DOF's own website instead, which serves the same HTML:
+
+```bash
+nota2md 4997808 --outdir output   # DOF 03-03-1999, a day SIDOF lost
+```
+
+The HTML path is the only one that can build these notes; asking for
+`--source image` or `--source pdf` on one raises rather than fetching the wrong
+pages.
+
+## Cutting a note out of its page
+
+A scanned page, or a sliced PDF, usually holds more than one note: it can begin
+with the tail of the previous one and end with the start of the next.
+`legal_provisions` uses the day's own index, which lists every note's title in
+order, to locate two boundaries in the OCR'd text, where this note's title
+appears and where the next note's title appears, and keeps only what lies
+between. Matching is fuzzy (accent-folded, marker-stripped, `difflib`
+alignment) to tolerate OCR differences, and it also drops the next note's
+organism header that the DOF prints above its title. `--min-confidence` sets
+how sure the match has to be before a boundary is applied; `--notas` sources
+the titles from a saved day instead of fetching them.

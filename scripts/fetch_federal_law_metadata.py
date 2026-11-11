@@ -45,7 +45,11 @@ Publishing stays manual, as everything in this corpus does (issue #115,
 Hallazgo C — no Action ever publishes SCJN-derived data):
 
     gh release upload scjn-leyes scripts/scjn/leyes-release/indice-global.json.gz \\
-        --repo INGEOTEC/LegalIA --clobber
+        --repo <owner>/<name> --clobber
+
+where ``<owner>/<name>`` is the releases' owner, `scjn.release.release_repository`
+(`SCJN_RELEASE_REPOSITORY` when set, else the package's default); the command
+the script prints at the end already names it.
 
 The per-law tarballs pick up the new `estado.json` keys on each law's next
 ordinary repack (`empaqueta_scjn_leyes.py`) — three fields are not worth a
@@ -62,13 +66,14 @@ from collections import Counter
 from datetime import date, datetime, timezone
 from pathlib import Path
 
-# Run straight from a clone, without `pip install -e packages/scjn` first.
+# `scjn` is nota2md's own dependency and comes from PyPI; _RAIZ is the
+# repository root, where the script's default output directories hang.
 _RAIZ = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(_RAIZ / "packages" / "scjn"))
 
 from scjn.api import ScjnApi, ScjnApiError, instrument_metadata  # noqa: E402
 from scjn.header import parse_header  # noqa: E402
 from scjn.release import (  # noqa: E402
+    release_repository,
     ASSET_INDICE_GLOBAL,
     CAMPOS_METADATOS,
     download_scjn_leyes_assets,
@@ -314,7 +319,7 @@ def main(argv=None) -> int:
     log(f"{salida}: {tocados} instrumento(s) con metadatos ({salida.stat().st_size} bytes)")
     log(
         "\nPara publicar (a mano, como todo en este corpus — issue #115, Hallazgo C):\n"
-        f"    gh release upload scjn-leyes {salida} --repo INGEOTEC/LegalIA --clobber"
+        f"    gh release upload scjn-leyes {salida} --repo {release_repository()} --clobber"
     )
     return 0
 

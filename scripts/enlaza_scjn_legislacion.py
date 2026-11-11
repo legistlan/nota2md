@@ -78,10 +78,11 @@ import sys
 from datetime import date
 from pathlib import Path
 
-# Run straight from a clone, without `pip install -e packages/nota2md` first.
+# Run straight from a clone, without `pip install -e .` first: the package
+# sits at the repository root. `scjn` and `dofjson` are nota2md's own
+# dependencies and come from PyPI.
 _RAIZ = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(_RAIZ / "packages" / "nota2md"))
-sys.path.insert(0, str(_RAIZ / "packages" / "scjn"))
+sys.path.insert(0, str(_RAIZ))
 
 from dofjson.titulos import SIN_CACHE_DIR, legal_provisions_titles  # noqa: E402
 from nota2md.builder import fetch_nota, get_document  # noqa: E402

@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# uv lockfile (the package is published; a lock belongs to whoever installs it)
+uv.lock
+
+# Tests / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Sphinx build output
+docs/build/
+
+# Quarto build output (website/ is the user site, see website.yml)
+website/_site/
+website/.quarto/
+**/*_files/
+
+# The crawl workspace the scripts read and write: enlaza_scjn_legislacion.py
+# and fetch_federal_law_metadata.py point at scjn's crawl output
+# (`--outdir`, scripts/scjn by default). Never committed: data lives in
+# releases (see CLAUDE.md); tests/fixtures/leyes/ is the one exception.
+/scripts/scjn/
+
+# Local output of one-off runs
+/output/
+
+# Editor / OS
+.DS_Store
+.ropeproject/
+
+# Local Claude Code settings (not shared)
+.claude/settings.local.json

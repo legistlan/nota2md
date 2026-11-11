@@ -1,19 +1,35 @@
 :mod:`nota2md`
 ===============
 
-.. image:: https://github.com/INGEOTEC/LegalIA/actions/workflows/test.yml/badge.svg
-        :target: https://github.com/INGEOTEC/LegalIA/actions/workflows/test.yml
+.. image:: https://github.com/legistlan/nota2md/actions/workflows/test.yml/badge.svg
+        :target: https://github.com/legistlan/nota2md/actions/workflows/test.yml
 
 .. image:: https://badge.fury.io/py/nota2md.svg
         :target: https://badge.fury.io/py/nota2md
 
-Version |nota2md_version| — see :doc:`index` for the full package table.
+.. py:module:: nota2md
 
-:py:mod:`nota2md` is the largest package in the monorepo — roughly 130
+Version |nota2md_version|. ``nota2md`` is one package of the Legistlan project
+(the ``legistlan`` organization on GitHub), extracted from a monorepo in
+November 2026 with its history. The developer references of the packages it
+builds on are `legistlan.github.io/dofjson/dev
+<https://legistlan.github.io/dofjson/dev/>`_, `legistlan.github.io/scjn/dev
+<https://legistlan.github.io/scjn/dev/>`_ and `legistlan.github.io/document2md/dev
+<https://legistlan.github.io/document2md/dev/>`_; every cross-reference below
+to a name of theirs resolves there.
+
+.. note::
+
+   This page is the developer reference. Using the package is documented on
+   the user site, `legistlan.github.io/nota2md <https://legistlan.github.io/nota2md/>`_.
+
+:py:mod:`nota2md` is the entry point of the project for anyone who wants a
+DOF note or a consolidated federal law as Markdown, and its largest package
+— roughly 130
 top-level functions and classes across :py:mod:`nota2md.builder`,
 :py:mod:`nota2md.leyes`, :py:mod:`nota2md.linking`, :py:mod:`nota2md.cache`,
 :py:mod:`nota2md.html_converter` and :py:mod:`nota2md.cli` — and the one
-whose behaviour needs the most prose: :py:func:`~nota2md.legal_provisions`
+whose behaviour needs the most prose: :py:func:`~nota2md.builder.legal_provisions`
 answers from the SCJN's consolidated text of the whole law by default and
 only falls back to the DOF's own source; its release assets are cached in
 **nota2md's own directory**, deliberately not :py:mod:`dofjson`'s (two
@@ -21,8 +37,8 @@ releases, two lifecycles); and a law's reform history *is* the
 ``scjn-leyes`` release itself, not a dataset of its own.
 
 The SCOW JSON API client and the ``scjn-leyes`` release's own readers moved
-to their own package, :doc:`scjn <scjn_api>`, in issues #206/#207/#209 —
-:py:mod:`nota2md.scjn`/:py:mod:`nota2md.scjn_api` no longer exist. What
+to their own package, `scjn <https://legistlan.github.io/scjn/dev/>`__, in issues #206/#207/#209 —
+``nota2md.scjn``/``nota2md.scjn_api`` no longer exist. What
 ``fuente: scjn`` means and what "reform N" now counts, plus the transport
 and the readers themselves, are explained there; this page only keeps the
 four reader names below because they are still re-exported off
@@ -33,11 +49,11 @@ the two sides that has to sit here rather than in :py:mod:`scjn`, since a
 ``codNota`` is a DOF concept.
 
 The sections below are ordered the way a note's Markdown actually gets
-built: :py:mod:`nota2md.builder` (the entry points, :py:func:`~nota2md.legal_provisions`
-and :py:func:`~nota2md.get_document`), the four ``scjn`` readers re-exported
+built: :py:mod:`nota2md.builder` (the entry points, :py:func:`~nota2md.builder.legal_provisions`
+and :py:func:`~nota2md.builder.get_document`), the four ``scjn`` readers re-exported
 here, :py:mod:`nota2md.linking` (the ``codNota`` linking seam),
 :py:mod:`nota2md.leyes`
-(:py:func:`~nota2md.reconstruct_legal_provisions`, built on the DOF alone),
+(:py:func:`~nota2md.leyes.reconstruct_legal_provisions`, built on the DOF alone),
 :py:mod:`nota2md.cache` (the on-disk cache this package's own output uses),
 :py:mod:`nota2md.html_converter` (the one note-to-Markdown conversion step),
 :py:mod:`nota2md.cli`. Every class and function is documented, including
@@ -48,7 +64,7 @@ network test files excluded from the routine ``pytest`` run.
 
 Every example below that touches the ``scjn-leyes`` corpus picks one law by
 slug — ``lfca`` (LEY Federal de Cine y el Audiovisual), the same small law
-(one snapshot as of this writing) ``packages/scjn/tests/test_release_red.py``
+(one snapshot as of this writing) ``scjn``'s own ``tests/test_release_red.py``
 already uses, chosen there because it is small and because it is one of the
 two laws the SCJN does not index at all (its snapshot was built by hand from
 the DOF). The whole release is ~380 MB; a corpus example that walked all of
@@ -64,7 +80,7 @@ it would make the doctest job unaffordable.
 >>>
 >>> outdir = Path(tempfile.mkdtemp())
 
-:py:func:`~nota2md.legal_provisions` answers ``codNota`` 5788357 — the
+:py:func:`~nota2md.builder.legal_provisions` answers ``codNota`` 5788357 — the
 reform that published ``lfca``'s only snapshot so far — from the SCJN by
 default, writing ``{slug}-{fecha}.md`` (the DOF path below writes
 ``nota-{codNota}.md`` instead):
@@ -89,8 +105,8 @@ this note (an ordinary permit decree, not a codified law) has digital text:
 >>> dest.read_text(encoding="utf-8").startswith("DECRETO por el que se concede")
 True
 
-:py:func:`~nota2md.get_document` is the one note-to-Markdown step
-underneath the HTML path above — the same record :py:func:`dofjson.get_nota`
+:py:func:`~nota2md.builder.get_document` is the one note-to-Markdown step
+underneath the HTML path above — the same record :py:func:`dofjson.api.get_nota`
 returns, with ``cadenaContenido`` converted to Markdown and every other key
 passed through untouched:
 
@@ -100,8 +116,8 @@ passed through untouched:
 >>> documento["cadenaContenido"].startswith("DECRETO por el que se concede")
 True
 
-:py:func:`~nota2md.fetch_daily_legal_provisions` and
-:py:func:`~nota2md.legal_provisions_titles` are re-exported straight off
+:py:func:`~dofjson.api.fetch_daily_legal_provisions` and
+:py:func:`~dofjson.titulos.legal_provisions_titles` are re-exported straight off
 :py:mod:`dofjson` (``dofjson.api``/``dofjson.titulos``) rather than built
 here — :py:mod:`nota2md` names them because a caller reaching for "this
 package's nine entry points" should not have to know that two of them
@@ -125,17 +141,18 @@ live one package down:
 ---------------------------------------
 
 Four of :py:mod:`scjn`'s own entry points are still re-exported off
-:py:mod:`nota2md` unchanged — the readers :py:func:`~nota2md.legal_provisions`
-itself calls into for the SCJN path above. See :doc:`scjn_api` for the full
+:py:mod:`nota2md` unchanged — the readers :py:func:`~nota2md.builder.legal_provisions`
+itself calls into for the SCJN path above. See the `scjn developer docs
+<https://legistlan.github.io/scjn/dev/>`__ for the full
 explanation (what ``fuente: scjn`` means, what "reform N" counts, the
 transport underneath, and every other reader :py:mod:`scjn.release`
 publishes); this is only enough to confirm they still work the same from
 here.
 
-:py:func:`~nota2md.download_scjn_leyes_index` reads the release's reverse
+:py:func:`~scjn.release.download_scjn_leyes_index` reads the release's reverse
 index — every ``codNota`` the corpus can resolve, mapped to the law(s) it
 reforms — a few hundred KB against the corpus' 380 MB, and the one call
-:py:func:`~nota2md.legal_provisions` makes to decide whether a note is
+:py:func:`~nota2md.builder.legal_provisions` makes to decide whether a note is
 covered at all:
 
 >>> indice = nota2md.download_scjn_leyes_index()
@@ -146,7 +163,7 @@ covered at all:
 >>> indice["codNota"][5788357]
 [{'slug': 'lfca', 'archivo': '22-05-2026.md', 'title_link_status': 'linked', 'content_diff_confirmed_codNota': None, 'content_diff_score': None}]
 
-:py:func:`~nota2md.download_scjn_leyes_corpus` reads one law's own tarball
+:py:func:`~scjn.release.download_scjn_leyes_corpus` reads one law's own tarball
 whole — every snapshot, its ``indice.json`` fields, and the DOF notes that
 were considered while linking it, so the link can be audited without going
 back to the network:
@@ -157,7 +174,7 @@ back to the network:
 >>> [(s["codNota"], s["fecha_publicacion"]) for s in corpus["snapshots"]]
 [(5788357, '22-05-2026')]
 
-:py:func:`~nota2md.iter_current_federal_laws` yields the *current* text of
+:py:func:`~scjn.release.iter_current_federal_laws` yields the *current* text of
 every federal law the release publishes — one tarball opened, its newest
 snapshot read, and its bytes dropped before the next law, so walking the
 whole corpus never holds more than one law in memory. ``slugs=["lfca"]``
@@ -175,12 +192,13 @@ narrow it with ``--slug``:
 Each law carries its own ``materia``/``vigencia``/``resumen`` too — the
 SCJN's subject classification, in-force status and one-paragraph abstract,
 one value per law rather than per snapshot (issue #215); see
-:doc:`scjn_api`, where the readers themselves live:
+the `scjn developer docs <https://legistlan.github.io/scjn/dev/>`__, where the
+readers themselves live:
 
 >>> laws[0]["materia"], laws[0]["vigencia"]
 ('ADMINISTRATIVO', 'VIGENTE')
 
-:py:func:`~nota2md.download_scjn_leyes_catalog` reads the federal-law
+:py:func:`~scjn.release.download_scjn_leyes_catalog` reads the federal-law
 catalogue the release already publishes — the seed the Cámara de Diputados
 used to be scraped for (issue #184). ``freshness=False`` skips every law's
 own tarball (the default reads all ~315 of them, ~380 MB, for the
@@ -205,13 +223,13 @@ than moving into :py:mod:`scjn` (issue #206 section 5, #208): nothing on the
 SCJN side imports this module, and this is the only place in the project
 that knows how a snapshot becomes a ``codNota``. Matches every snapshot of a
 law (:py:func:`scjn.header.versiones_de_directorio`) against the DOF's own
-titles (:py:func:`~nota2md.legal_provisions_titles`) to produce a
+titles (:py:func:`~dofjson.titulos.legal_provisions_titles`) to produce a
 ``codNota`` per snapshot; :py:func:`~nota2md.builder.legal_provisions`'s SCJN
 path resolves the other direction through the same module — a ``codNota``
 back to the snapshot it produced — calling :py:mod:`scjn.release`'s
 disk-first readers rather than the network (issue #209). Not part of
 :py:mod:`nota2md`'s ``__all__`` (a caller reaches it through
-``scripts/enlaza_scjn_legislacion.py`` or :py:func:`~nota2md.legal_provisions`
+``scripts/enlaza_scjn_legislacion.py`` or :py:func:`~nota2md.builder.legal_provisions`
 itself, not directly), so it is documented here without a standalone example.
 
 .. automodule:: nota2md.linking
@@ -222,7 +240,7 @@ itself, not directly), so it is documented here without a standalone example.
 ``nota2md.leyes`` — reconstructing a law from the DOF alone
 ------------------------------------------------------------------
 
-:py:func:`~nota2md.reconstruct_legal_provisions` never reads the SCJN's
+:py:func:`~nota2md.leyes.reconstruct_legal_provisions` never reads the SCJN's
 consolidated text (that comparison is exactly what
 ``tests/test_leyes_44.py`` measures, against the SCJN as ground truth):
 it replays a law's own reform decrees, oldest first, on top of its original
@@ -244,7 +262,7 @@ True
 
 ``nombre_ley`` scopes every note to this one instrument among the several a
 single decree may touch — every note in ``cod_notas`` here is fetched
-through :py:func:`~nota2md.legal_provisions` into ``leyes_outdir`` too, as
+through :py:func:`~nota2md.builder.legal_provisions` into ``leyes_outdir`` too, as
 ``nota-{codNota}.md``, so a second law sharing the same ``outdir`` would
 not re-fetch what this one already has.
 
@@ -263,7 +281,7 @@ Deliberately the same idea :py:mod:`dofjson.titulos` already uses for the
 (the ``.tgz`` files) live in :py:data:`scjn.cache.CACHE_DIR` instead, a
 separate lifecycle this module knows nothing about. What is left here is
 only what :py:mod:`nota2md` itself derives — the one snapshot
-:py:func:`~nota2md.legal_provisions`' no-``outdir`` form extracted out of a
+:py:func:`~nota2md.builder.legal_provisions`' no-``outdir`` form extracted out of a
 ``scjn`` tarball and cached as plain text, deletable and re-derivable at any
 time:
 
@@ -281,7 +299,7 @@ True
 ``nota2md.html_converter`` — the one note-to-Markdown step
 ------------------------------------------------------------------
 
-:py:func:`~nota2md.get_document` above is the only caller of
+:py:func:`~nota2md.builder.get_document` above is the only caller of
 ``html_to_markdown()`` — DOF note HTML is regular enough (block structure
 from CSS classes, not tag names; emphasis from inline ``font-weight``/
 ``font-style`` CSS on ``<span>`` runs) that this one function is enough for

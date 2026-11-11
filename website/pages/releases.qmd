@@ -1,0 +1,63 @@
+---
+title: "Releases"
+---
+
+nota2md publishes no dataset of its own. It reads two releases owned by the
+packages it builds on, and `nota2md download` is a convenience downloader for
+five.
+
+| Subcommand | Release | Owner | What nota2md does with it |
+|---|---|---|---|
+| `federal-laws` | [`scjn-leyes`](https://github.com/legistlan/scjn/releases/tag/scjn-leyes) | `scjn` | the SCJN path of `legal_provisions`, the four re-exported readers, the `codNota` linking |
+| `federal-regulations` | `scjn-reglamentos` | `scjn` | downloaded; read by nothing here |
+| `federal-guidelines` | `scjn-lineamientos` | `scjn` | downloaded; read by nothing here |
+| `international-treaties` | `scjn-tratados` | `scjn` | downloaded; read by nothing here |
+| `gazette-metadata` | [`notas-archivo`](https://github.com/legistlan/dofjson/releases/tag/notas-archivo) | `dofjson` | `legal_provisions_titles`; the DOF titles the linking matches against |
+
+`all` runs the five, each into its own cache directory: a shorthand for five
+invocations, not a merge of the caches. See [Command line](cli.qmd) for
+`--slug`, `--id` and `--refrescar`.
+
+## Where the data lands
+
+The releases keep two separate cache directories, by package: they have
+different lifecycles, and clearing one must not clear the other.
+
+| | the four SCJN releases | `notas-archivo` |
+|---|---|---|
+| Package | `scjn` | `dofjson` |
+| Linux | `~/.cache/scjn/<release>/` | `~/.cache/dofjson/` |
+| macOS | `~/Library/Caches/scjn/<release>/` | `~/Library/Caches/dofjson/` |
+| Windows | `%LOCALAPPDATA%\scjn\Cache\<release>\` | `%LOCALAPPDATA%\dofjson\Cache\` |
+| Override | `$SCJN_CACHE_DIR`, or `scjn.cache.CACHE_DIR` | `dofjson.titulos.CACHE_DIR` |
+| Per run | `--cache-dir DIR` | `--cache-dir DIR` |
+
+What nota2md itself derives, the one snapshot `legal_provisions` extracted out
+of a tarball and the DOF notes it built, lives in a third directory,
+`nota2md.cache.CACHE_DIR` (`$NOTA2MD_CACHE_DIR`), deletable and re-derivable at
+any time. See [Install](install.qmd).
+
+From Python, the five downloads are `scjn.release.download_scjn_leyes_assets`,
+`download_scjn_reglamentos_assets`, `download_scjn_lineamientos_assets`,
+`download_scjn_tratados_assets` and `dofjson.download_dof_assets`.
+
+## Where the releases' owners are
+
+Each release lives in the repository of the package that reads it: the four
+SCJN releases in [`legistlan/scjn`](https://github.com/legistlan/scjn/releases)
+and the gazette's archive in
+[`legistlan/dofjson`](https://github.com/legistlan/dofjson/releases). The
+environment variables `SCJN_RELEASE_REPOSITORY` and `DOFJSON_RELEASE_REPOSITORY`
+(`<owner>/<name>`) point each package at a mirror elsewhere; nota2md has no
+variable of its own, since it fetches nothing itself.
+
+## `historial-legislativo`, a frozen record
+
+This repository's one release is `historial-legislativo`, the change history of
+three collections of federal regulation that were built from a source the
+project no longer consults. Nothing here can regenerate its assets and no
+workflow republishes them; it stays downloadable because its data is still
+true of the day it was built. Its notes,
+[`.github/historial-legislativo.md`](https://github.com/legistlan/nota2md/blob/main/.github/historial-legislativo.md),
+say what each asset holds and where a law's reform history lives now: in the
+`scjn-leyes` release itself.

@@ -1,0 +1,61 @@
+---
+title: "Install"
+---
+
+nota2md needs Python 3.10 or newer.
+
+```bash
+pip install nota2md          # the HTML path, the reconstruction and the release readers
+pip install "nota2md[ocr]"   # also document2md, for the image and PDF OCR paths
+```
+
+## What it depends on
+
+| Package | What it is for |
+|---|---|
+| [`dofjson`](https://legistlan.github.io/dofjson/) | every request to SIDOF and to the DOF's website; the `notas-archivo` release and its titles stream |
+| [`scjn`](https://legistlan.github.io/scjn/) | the `scjn-leyes` release: the readers the SCJN path calls, and the outline markers it strips |
+| `beautifulsoup4` | converting a note's DOF HTML to Markdown |
+| `requests` | the one direct request the DOF's website gets |
+| `platformdirs` | picking the per-user cache directory |
+
+`nota2md` requires `scjn>=0.5.1` and `dofjson>=0.5.0`, both from PyPI; nothing
+in either imports back from it. The OCR paths need
+[`document2md`](https://legistlan.github.io/document2md/) and its `mineru`
+server, which are heavy, so they are an optional extra imported lazily: the HTML
+path works without them.
+
+## The cache directories
+
+Three packages, three caches, none shared: clearing one must not clear another.
+
+| What | Where | Override |
+|---|---|---|
+| what nota2md itself derives: the one snapshot `legal_provisions` extracted, the DOF notes it built | `nota2md.cache.CACHE_DIR` (`~/.cache/nota2md` on Linux, `~/Library/Caches/nota2md` on macOS) | `$NOTA2MD_CACHE_DIR` |
+| the four SCJN releases | `scjn.cache.CACHE_DIR` (`~/.cache/scjn`) | `$SCJN_CACHE_DIR` |
+| the `notas-archivo` release | `dofjson.titulos.CACHE_DIR` (`~/.cache/dofjson`) | reassign `dofjson.titulos.CACHE_DIR` |
+
+The SCJN readers are disk-first: a `codNota` whose law is not on disk raises
+`scjn.release.AssetNotCached` inside `scjn`, and `legal_provisions` falls back
+to the DOF for it, with a warning, rather than downloading. Put the law there
+first with `nota2md download federal-laws` (see [Command line](cli.qmd)).
+
+## GitHub rate limit
+
+Resolving a release's parts asks the GitHub API once, where an unauthenticated
+address gets 60 requests an hour. When `GH_TOKEN` (or `GITHUB_TOKEN`) is set,
+that request carries it as a bearer token; without one nothing changes. The
+asset downloads themselves are outside that quota.
+
+## Development install
+
+```bash
+pip install -e ".[test]"
+pytest tests --ignore=tests/test_leyes_44.py
+```
+
+The ignored file reconstructs 42 federal laws from their DOF decrees, fetched
+for real; CI runs it in its own `network` job. Four tests of `test_builder.py`
+patch `document2md.converter.*` and skip themselves when the `ocr` extra is not
+installed (`pip install -e ".[test,ocr]"` runs them; `document2md` has no
+`onnxruntime` wheel for macOS x86_64).

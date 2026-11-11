@@ -1,0 +1,156 @@
+---
+title: "Command line"
+---
+
+nota2md has two verbs, one of them implicit. A bare `codNota` is the `build`
+form, which the verb may be left out of; `download` puts the GitHub releases
+the project reads on disk.
+
+```bash
+nota2md [build] <codNota> [--fecha YYYY-MM-DD] [--source {auto,dof,html,image,pdf}]
+        [--instrumento SLUG] [--cache-dir DIR] [--refrescar] [--notas PATH]
+        [--min-confidence N] [--keep-pages] [--keep-mineru-output] [--outdir DIR]
+nota2md download {federal-laws,federal-regulations,federal-guidelines,
+                  international-treaties,gazette-metadata,all} ...
+```
+
+## `build`: one legal provision
+
+```bash
+nota2md 5788357                        # no --outdir: written into nota2md's cache, path printed
+nota2md 5788357 --outdir output        # the law at that reform (SCJN), else the DOF
+nota2md 5788357 --source dof --outdir output    # the original source only, never the SCJN
+```
+
+### `--source`
+
+Where to build the Markdown from. `auto` (the default) answers with the SCJN's
+consolidated text of the whole law at that reform when the `scjn-leyes` release
+covers the `codNota`, otherwise the DOF; `dof` skips the SCJN and takes the
+original source, HTML when the note has digital text and OCR otherwise; `html`,
+`image` and `pdf` force one DOF path. See [Sources](sources.qmd).
+
+### `--instrumento`
+
+Which law is meant, by its slug, when one decree reformed several at once. The
+SCJN path refuses to guess and raises, listing the candidates, until this says.
+
+```bash
+nota2md 5793655 --instrumento lft --outdir output
+```
+
+### `--fecha`
+
+The note's publication date. Some codes from 1999 and 2000 the DOF's website
+only resolves when given alongside their own date; pass it when it is already
+known.
+
+### `--outdir`
+
+The output directory. Omitted, the Markdown is written into nota2md's own
+cache (`scjn-leyes/md/` for the SCJN path, `dof/` for every DOF path) and its
+path printed, so the caller does not have to pick a directory to get a note.
+
+### `--cache-dir`
+
+The directory this note's own Markdown is cached under (see `nota2md.cache`);
+given explicitly, it is also where the SCJN path reads the `scjn-leyes` tarball
+from. Not given, nota2md's output uses `nota2md.cache.CACHE_DIR` and the SCJN
+path reads `scjn.cache.CACHE_DIR`, a separate directory. `none` skips nota2md's
+own cache, so the DOF path is downloaded fresh every time; it does not skip the
+SCJN's cache, which is disk-first and never downloads on demand.
+
+```bash
+nota2md 5793655 --cache-dir /mnt/datos/nota2md --outdir output
+nota2md 5793655 --cache-dir none --refrescar --outdir output
+```
+
+### `--refrescar`
+
+Re-extract the SCJN path's already-cached snapshot into this note's own
+Markdown cache even if one is already there. It re-downloads nothing.
+
+### `--notas`
+
+A saved day's legal provisions as JSON (for example from `dofjson DATE`), to
+source the next note's title from instead of fetching it; image path only.
+Either shape works: `get_notas()`'s per-edition dict or
+`fetch_daily_legal_provisions()`'s flat list.
+
+```bash
+dofjson 2026-07-15 --outdir output          # writes 15072026-notas.json
+nota2md 5793655 --source image --notas output/15072026-notas.json --outdir output
+```
+
+### `--min-confidence`
+
+The minimum title-match confidence, between 0 and 1, before a cut boundary is
+applied on the image path; below it more text is kept rather than less. The
+default is 0.6.
+
+### `--keep-pages` and `--keep-mineru-output`
+
+`--keep-pages` also keeps the uncut, full-page OCR output as
+`nota-<codNota>.full.md`. `--keep-mineru-output` also keeps mineru's own raw
+output (layout and model JSON, rendered PDFs) under `nota-<codNota>_mineru/`
+instead of discarding it. Both are for the image and PDF paths only.
+
+## `download`: the releases on disk
+
+Everything else reads from the releases the project publishes. `download`
+fetches them ahead of time, each into the per-user cache directory of the
+package that owns it, so a notebook, a batch run or an offline session finds
+them already there.
+
+```bash
+nota2md download federal-laws              # scjn-leyes (~380 MB, 315 laws)
+nota2md download federal-regulations       # scjn-reglamentos
+nota2md download federal-guidelines        # scjn-lineamientos
+nota2md download international-treaties    # scjn-tratados
+nota2md download gazette-metadata          # notas-archivo (~59 MB, 117 assets)
+nota2md download all                       # all five, each into its own cache
+```
+
+### `--slug`
+
+On `federal-laws` and `all`: only this law's tarball, by slug, repeatable. Not
+given, every law the release publishes. The reverse index always comes along,
+since it is what resolves a `codNota` to a law.
+
+```bash
+nota2md download federal-laws --slug lft --slug lfca
+nota2md download all --slug lfca           # narrows the scjn-leyes half only
+```
+
+### `--id`
+
+On `federal-regulations`, `federal-guidelines` and `international-treaties`:
+only this instrument's tarball, by `id_ordenamiento`, repeatable. None of these
+collections has an `abrev`, so they take `--id`, never `--slug`; `all` has no
+`--id`, since an id could not say which of the three collections it names.
+
+```bash
+nota2md download federal-regulations --id 4570340
+nota2md download international-treaties --id 1012
+```
+
+### `--cache-dir` on `download`
+
+The directory to write into. On the four SCJN subcommands it is an `scjn`
+directory (`scjn.cache.CACHE_DIR` by default, `$SCJN_CACHE_DIR`); on
+`gazette-metadata` it is a `dofjson` one (`dofjson.titulos.CACHE_DIR`). `none`
+is rejected here: each subcommand exists to write a release to disk.
+
+### `--refrescar` on `download`
+
+Re-download assets already present instead of keeping them. Every subcommand
+is idempotent otherwise: an asset already on disk is matched by file name and
+never revalidated, so a second run downloads nothing. Each line of output says
+how many assets were downloaded versus already cached and names the directory:
+
+```console
+$ nota2md download federal-laws --slug lfca
+[1/2] indice-global.json.gz: already cached
+[2/2] lfca.tgz: already cached
+scjn-leyes: 2 assets in /home/user/.cache/scjn/scjn-leyes (0 downloaded, 2 already cached)
+```

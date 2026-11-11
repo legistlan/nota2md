@@ -1,8 +1,25 @@
 # nota2md
 
-[![Documentation Status](https://readthedocs.org/projects/legalia/badge/?version=latest)](https://legalia.readthedocs.io/en/latest/nota2md_api.html)
+[![test](https://github.com/legistlan/nota2md/actions/workflows/test.yml/badge.svg)](https://github.com/legistlan/nota2md/actions/workflows/test.yml)
+[![PyPI](https://badge.fury.io/py/nota2md.svg)](https://badge.fury.io/py/nota2md)
 
-*The version notes in the blockquotes below are a changelog and keep the issue and rule numbers of the day they were written; `packages/md2akn/RULES.md` maps every old `md2akn` rule number to the present list.*
+One DOF note to Markdown. `legal_provisions(codNota)` returns the SCJN's consolidated text of the
+whole law at that reform when the `scjn-leyes` release covers the `codNota`, else the DOF's own
+HTML, image or PDF source (`source="dof"` forces it); `reconstruct_legal_provisions` replays a
+law's current text from its reform decrees; `nota2md.linking` matches an SCJN snapshot to the DOF
+`codNota` that produced it. The DOF (*Diario Oficial de la Federación*, read through
+[`dofjson`](https://github.com/legistlan/dofjson)) is the official source of legal text; the SCJN
+(read through [`scjn`](https://github.com/legistlan/scjn)) is not, and `fuente: scjn` in a provenance
+header means exactly that. `nota2md` is one package of the Legistlan project and the one a caller
+reaches for first: it requires `scjn>=0.5.1` and `dofjson>=0.5.0` from PyPI and re-exports their
+entry points, and nothing in either imports back from it.
+
+## Documentation
+
+- **Using the package:** [legistlan.github.io/nota2md](https://legistlan.github.io/nota2md/)
+- **Extending the package:** [legistlan.github.io/nota2md/dev](https://legistlan.github.io/nota2md/dev/)
+
+*The version notes in the blockquotes below are a changelog and keep the issue and rule numbers of the day they were written; `md2akn`'s `RULES.md` maps every old `md2akn` rule number to the present list.*
 
 > **v0.5.1 (unreleased):** a
 > snapshot `scjn` writes now carries the outline the SCJN's API states, one
@@ -53,7 +70,7 @@
 > `scjn.release.AssetNotCached` — `legal_provisions` still falls back to the
 > DOF for it, exactly as it did for the old `KeyError`. See [the SCJN
 > path](#the-scjn-path--a-laws-consolidated-text-at-each-reform) and [the
-> `scjn` package](../scjn) for the readers' own docs.
+> `scjn` package](https://github.com/legistlan/scjn) for the readers' own docs.
 >
 > **`download_legal_provisions_provenance_ids` is gone** (issue #187). It read
 > the `historial-legislativo` release, which was built by scraping the Cámara
@@ -61,7 +78,7 @@
 > alone (issue #184). There is no shim and the name is not kept.
 >
 > A law's reform history is the
-> [`scjn-leyes`](https://github.com/INGEOTEC/LegalIA/releases/tag/scjn-leyes)
+> [`scjn-leyes`](https://github.com/legistlan/scjn/releases/tag/scjn-leyes)
 > release itself: `download_scjn_leyes_corpus("<abrev>")` gives one entry per
 > reform, oldest first, each with the `codNota` that published it — which is
 > exactly what `reconstruct_legal_provisions` takes.
@@ -82,7 +99,7 @@
 > `Path`: `legal_provisions(5773097)` →
 > `<CACHE_DIR>/scjn-leyes/md/ccf-14-11-2025.md`. Passing an `outdir` behaves
 > exactly as before. And by default a `codNota`
-> the [`scjn-leyes`](https://github.com/INGEOTEC/LegalIA/releases/tag/scjn-leyes)
+> the [`scjn-leyes`](https://github.com/legistlan/scjn/releases/tag/scjn-leyes)
 > release covers now comes back as **the law's whole consolidated text at that
 > reform** (written to `outdir/{slug}-{fecha}.md`, `fuente: scjn` header
 > included), not as the reform decree the DOF published. Pass
@@ -129,8 +146,8 @@ print(dest)
 Builds the Markdown of a **single DOF legal provision**, identified by its
 `codNota`.
 
-Where [`document2md`](https://github.com/INGEOTEC/document2md) converts a whole edition PDF and
-[`dofjson`](../dofjson) is a thin client for SIDOF's JSON service,
+Where [`document2md`](https://github.com/legistlan/document2md) converts a whole edition PDF and
+[`dofjson`](https://github.com/legistlan/dofjson) is a thin client for SIDOF's JSON service,
 `legal_provisions` ties them together to produce the Markdown for one legal
 provision, from any of four sources:
 
@@ -148,7 +165,7 @@ whichever source it came from.
 
 ### Legal provisions SIDOF does not have
 
-SIDOF is missing whole days of the gazette (see [`dofjson`](../dofjson)), and
+SIDOF is missing whole days of the gazette (see [`dofjson`](https://github.com/legistlan/dofjson)), and
 the legal provisions published on them have no SIDOF record at all — no
 `cadenaContenido`, and no `codDiario` or page numbers for the OCR paths to
 start from. When SIDOF answers `{"Nota": []}` for a `codNota`,
@@ -238,7 +255,7 @@ through the SCJN's own SCOW JSON API since issue #172, which replaced the
 legacy WebForms Buscador and, unlike it, indexes laws as new as the LEY
 FEDERAL DE CINE Y EL AUDIOVISUAL — matched to the DOF `codNota` that enacted
 them, and published as the
-[`scjn-leyes`](https://github.com/INGEOTEC/LegalIA/releases/tag/scjn-leyes)
+[`scjn-leyes`](https://github.com/legistlan/scjn/releases/tag/scjn-leyes)
 release (315 laws, 3,724 snapshots). A `codNota` the release covers is
 answered straight out of it — which is what
 [`reconstruct_legal_provisions`](#reconstruct_legal_provisions--a-laws-current-text-from-its-dof-legal-provisions)
@@ -349,7 +366,7 @@ package's **own** cache directory, not `nota2md`'s:
 
 `SCJN_CACHE_DIR` defaults to the OS per-user cache directory (`~/.cache/scjn`
 on Linux), overridable with `$SCJN_CACHE_DIR` or by reassigning
-`scjn.cache.CACHE_DIR` — see [the `scjn` package](../scjn) for the readers
+`scjn.cache.CACHE_DIR` — see [the `scjn` package](https://github.com/legistlan/scjn) for the readers
 themselves. Every reader is disk-only: none of them download on demand, so a
 `cache_dir` passed to `legal_provisions`/`download_scjn_leyes_corpus`/etc.
 either names a directory explicitly (used as-is, both for this release and
@@ -423,7 +440,7 @@ with BatchConverter() as ins:
         legal_provisions(cod_nota, "output", source="image", converter=ins)
 ```
 
-This is the same `BatchConverter` [`document2md`](https://github.com/INGEOTEC/document2md) itself uses to
+This is the same `BatchConverter` [`document2md`](https://github.com/legistlan/document2md) itself uses to
 convert any batch of documents — DOF-sourced or not.
 
 ## `reconstruct_legal_provisions` — a law's current text from its DOF legal provisions
@@ -485,7 +502,7 @@ result before trusting it.
 
 ## `legal_provisions_titles` — every legal provision ever published, as titles
 
-Implemented in [`dofjson.titulos`](../dofjson) and re-exported here so it sits
+Implemented in [`dofjson.titulos`](https://github.com/legistlan/dofjson) and re-exported here so it sits
 alongside the rest of `nota2md`'s entry points. Yields a compact `codNota` +
 `titulo` + `fecha` + `codOrgaUno` record for every legal provision published
 since 1917 (~1.2 million of them), streamed off the `notas-archivo` cache —
@@ -598,24 +615,58 @@ pip install nota2md          # legal_provisions' HTML path, plus reconstruct_leg
 pip install nota2md[ocr]     # also pulls in document2md, for legal_provisions' image/PDF OCR paths
 ```
 
-`dofjson` and `requests` are hard dependencies and install automatically. For
-development in this monorepo, install the siblings editable instead so local
-edits are picked up:
+`dofjson`, `scjn`, `beautifulsoup4`, `platformdirs` and `requests` are hard dependencies and install
+automatically, from PyPI: `nota2md` requires `scjn>=0.5.1` and `dofjson>=0.5.0`, the two packages of
+the project it builds on, and a published package never carries a URL dependency. Publish order
+across repositories is therefore `scjn` and `dofjson` before the `nota2md` release that raises their
+floor, and [`document2md`](https://github.com/legistlan/document2md) before any `nota2md` whose `ocr`
+extra requires it.
 
-```bash
-pip install -e "packages/dofjson"
-pip install document2md          # own repository; only needed for the image/PDF OCR paths
-pip install -e "packages/nota2md[test]"
-```
+## The releases it reads
+
+`nota2md` publishes no dataset of its own. It reads two releases owned by its dependencies, and
+`nota2md download` is a convenience downloader for five:
+
+| Release | Owner | What `nota2md` does with it |
+|---|---|---|
+| [`scjn-leyes`](https://github.com/legistlan/scjn/releases/tag/scjn-leyes) | `scjn` | the SCJN path of `legal_provisions`, the four re-exported readers, the `codNota` linking |
+| [`notas-archivo`](https://github.com/legistlan/dofjson/releases/tag/notas-archivo) | `dofjson` | `legal_provisions_titles`, the DOF titles the linking matches against |
+| `scjn-reglamentos`, `scjn-lineamientos`, `scjn-tratados` | `scjn` | downloaded by `nota2md download`, read by nothing here |
+
+`historial-legislativo` is this repository's one release, a frozen record: its notes are
+[`.github/historial-legislativo.md`](.github/historial-legislativo.md), and nothing here can regenerate
+its assets.
+
+## The scripts
+
+Three scripts live here because what they produce or read is this package's own:
+
+- `scripts/enlaza_scjn_legislacion.py` matches every SCJN snapshot a crawl downloaded to the DOF
+  `codNota` that published it (`nota2md.linking`), writing one `indice.json` per law. It is step 4
+  of `scjn`'s crawl process, run against that repository's crawl workspace (`--outdir`); a
+  `codNota` is a DOF concept, so the linking lives here and not in `scjn`.
+- `scripts/fetch_federal_law_metadata.py` records each federal law's `materia`, `vigencia` and
+  `resumen` from the SCJN's own search, matched by `idOrdenamiento`, into the crawl's `estado.json`
+  files and the published `indice-global.json.gz`; the `gh release upload` line it prints names
+  the releases' owner (`scjn.release.release_repository`).
+- `scripts/regenera_fixtures_leyes.py` rewrites `tests/fixtures/leyes/` from the `scjn-leyes`
+  release: the ground truth `tests/test_leyes_44.py` compares a reconstruction against.
+
+They import `nota2md` from the repository root and `scjn`/`dofjson` from PyPI; a clone needs no
+`pip install -e .` to run them.
 
 ## Tests
 
 ```bash
-pytest packages/nota2md -q --ignore=packages/nota2md/tests/test_leyes_44.py
+pip install -e ".[test]"
+pytest tests --ignore=tests/test_leyes_44.py
 ```
 
-The ignored file reconstructs the 44 laws the reconstruction was designed against and makes real
-network calls.
+The ignored file reconstructs the 42 laws the reconstruction was designed against from their DOF
+decrees, fetched for real, and makes network calls; CI runs it in its own `network` job. The four
+tests of `test_builder.py` that patch `document2md.converter.*` skip themselves when the `ocr` extra
+is not installed (`pip install -e ".[test,ocr]"` to run them; `document2md` has no `onnxruntime`
+wheel for macOS x86_64).
 
 | File | What it covers |
 |---|---|
@@ -623,24 +674,35 @@ network calls.
 | `test_builder_scjn.py` | the dispatcher between the SCJN corpus and the DOF |
 | `test_cache.py` | `nota2md.cache`: what `nota2md` derives and keeps |
 | `test_cli.py` | the console script, `nota2md download` included (one parametrised set for the three id-keyed subcommands) |
+| `test_docs.py` | every module has one `automodule`; the CLI page names every option; no tracked file names the former owner |
 | `test_html_converter.py` | the HTML-to-Markdown converter |
 | `test_leyes.py` | `reconstruct_legal_provisions` |
-| `test_leyes_44.py` | reconstruction against the 44 reference laws (network) |
+| `test_leyes_44.py` | reconstruction against the reference laws (network) |
 | `test_linking.py` | matching a snapshot to the DOF `codNota` that produced it |
+| `test_packaging.py` | `[tool.uv] cache-keys` lists `nota2md/__init__.py`, where the dynamic version lives |
 
-Shared helpers live in `tests/conftest.py`, one definition each. To find a test that repeats another
-(same input and assertions, a subset, a parametrisable group, a helper defined in two files) run the
-read-only inventory, which parses the tests without importing them:
-
-```bash
-python scripts/test_inventory.py --suite nota2md
-```
-
-After merging or deleting tests, compare line coverage per file by the *set* of covered lines
-(`pytest --cov=nota2md --cov-report=json`): a line covered before and not after is a lost test.
+Shared helpers live in `tests/conftest.py`, one definition each. After merging or deleting tests,
+compare line coverage per file by the *set* of covered lines (`pytest --cov=nota2md
+--cov-report=json`): a line covered before and not after is a lost test.
 
 ## Development
 
 ```bash
-pytest packages/nota2md
+pip install -e ".[test]"
+pytest tests --ignore=tests/test_leyes_44.py
+scjn download --slug lfca                                                  # what the doctests read
+python -m sphinx -n -W --keep-going -b html docs/source docs/build/html   # the strict build
+python -m sphinx -b doctest docs/source docs/build/doctest                # the examples, network included
+quarto render website                                                     # the user site
+python scripts/check_package_versions.py                                  # the local version is one step ahead of PyPI
 ```
+
+`nota2md` was one package of a monorepo, `packages/nota2md`, until 11 November 2026 (monorepo commit
+`f403872b1`); this repository carries that history, filtered to the package's own files, its three
+scripts, its documentation page and the notes of its one release, so `git log` and `git blame` reach
+back to the first commit. A `#N` in a commit message, a comment or a docstring is an issue of that
+monorepo.
+
+## License
+
+Apache 2.0, see [`LICENSE`](LICENSE).

@@ -26,7 +26,7 @@ def _cache_dir_global_aislado(tmp_path):
     that forgets to override them would silently read whatever this machine
     happens to have downloaded there instead of the network mock it set up,
     and pass or fail depending on host state alone -- same reasoning as
-    `packages/dofjson/tests/conftest.py`.
+    `dofjson`'s own `tests/conftest.py`.
 
     `download_scjn_leyes_index` is stubbed out to `INDICE_VACIO` for the same
     reason one step earlier: `legal_provisions` now consults it on every

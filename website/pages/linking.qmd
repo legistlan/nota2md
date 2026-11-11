@@ -1,0 +1,60 @@
+---
+title: "Linking"
+---
+
+A `codNota` is a concept of the gazette, and the Court's snapshots know nothing
+of it. `nota2md.linking` is the one place in the project that knows how a
+snapshot becomes a `codNota`: it matches every snapshot of a law against the
+DOF's own titles, and `legal_provisions`' SCJN path resolves the other
+direction, a `codNota` back to the snapshot it produced, through the same
+module. Nothing on the SCJN side imports it; `scjn` depends on no sibling
+package, and the seam sits here.
+
+## How a snapshot gets its `codNota`
+
+For every snapshot of a law, dated by the SCJN's own reform table, the linking
+looks at the DOF's notes of that same day (the titles stream of the
+`notas-archivo` release) and asks two questions in order.
+
+1. **Does a same-day title name the instrument?** The candidates are the notes
+   whose own title explicitly names the law (`title_candidates`); when no title
+   does, whichever same-day note opens with "DECRETO" or "LEY" is taken, since a
+   reform's title does not always spell out every law it amends. A single
+   candidate is the link.
+2. **Which candidate's text explains the change?** Every entry also gets a
+   content-diff confirmation: among that day's candidates with digital DOF text,
+   the one whose own text best accounts for what actually changed between this
+   snapshot and the previous one (`content_diff_confirmed_codNota`,
+   `content_diff_score`). When the title alone could not pick a winner, the
+   confirmation is the link, provided it clears the confirmation threshold and
+   the candidate is not already claimed by another snapshot.
+
+Each snapshot's `indice.json` entry records the `codNota` matched to it
+(`null` when none), every same-day candidate, how the pool was resolved
+(`title_link_status`: `linked`, `content_diff`, `none`, `claimed` or
+`ambiguous`) and its confirmation. The DOF notes considered while linking
+travel inside each law's own tarball, so a link can be audited without going
+back to the network.
+
+An absent link is worth more than a wrong one: a date left `ambiguous`, several
+same-day candidates and no content confirmation among them, is reported for a
+human to review, never guessed. As of the release, 3,291 of the 3,724 `leyes`
+snapshots are linked to a `codNota`, 2,474 by title alone and 834 more by their
+content-diff confirmation; 526 of the linked ones are pre-1999.
+
+## What a `codNota` is used for
+
+- `legal_provisions(codNota)` consults the reverse index
+  (`download_scjn_leyes_index`) to decide whether the note is covered at all,
+  and reads the snapshot it maps to.
+- `reconstruct_legal_provisions` takes a law's `codNota` list, which
+  `download_scjn_leyes_corpus` gives one entry per reform, oldest first.
+- "Reform N" of a law is the position of the reform in the SCJN's own
+  chronological reform table, and a law's reform history is the `scjn-leyes`
+  release itself: `nota2md` publishes no dataset of its own.
+
+## The script
+
+`scripts/enlaza_scjn_legislacion.py` runs the linking over a crawl workspace,
+one `indice.json` per law, and is step 4 of `scjn`'s crawl process. See
+[Scripts](scripts.qmd).
